@@ -14,8 +14,8 @@ class TabularSpec extends FlatSpec with Matchers {
 
     for {
       ext <- Tabular.extensionOf(name)
-      src <- Tabular.open(config, getClass.getResourceAsStream(name), ext)
-      tab <- src.get(NilAddress)
+      container <- Tabular.open(config, getClass.getResourceAsStream(name), ext)
+      tab <- container.get(NilAddress)
     } {
       for ((row, i) <- tab.rows.zipWithIndex) {
         if (i == 0) {
@@ -27,15 +27,15 @@ class TabularSpec extends FlatSpec with Matchers {
           row.get[String]("a string").get shouldEqual "now is the winter of our discontent"
         }
       }
-      src.close()
+      container.close()
     }
   }
 
   def testInvalidConversions(name: String): Unit = {
     for {
       ext <- Tabular.extensionOf(name)
-      src <- Tabular.open(config, getClass.getResourceAsStream(name), ext)
-      tab <- src.get(NilAddress)
+      container <- Tabular.open(config, getClass.getResourceAsStream(name), ext)
+      tab <- container.get(NilAddress)
     } {
       for ((row, i) <- tab.rows.zipWithIndex) {
         if (i == 1) {
@@ -45,7 +45,7 @@ class TabularSpec extends FlatSpec with Matchers {
         }
       }
 
-      src.close()
+      container.close()
     }
   }
 
@@ -95,5 +95,5 @@ class TabularSpec extends FlatSpec with Matchers {
   it should "work for XLSX" in {
     testInvalidConversions("/testdata.xlsx")
   }
-
+  
 }

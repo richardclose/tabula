@@ -138,6 +138,12 @@ object Tabular {
   }
 
   /**
+    * Open a container from a file, given a filename.
+    */
+  def open(config: Config, filename: String): Option[Container] =
+    open(config, new File(filename))
+
+  /**
     * Parse the given address string specifically for
     * the given extension.
     */
