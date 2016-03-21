@@ -61,7 +61,8 @@ object Converter {
   class BasicStringConverter(config: Tabular.Config) extends Converter[String](config) {
 
     def asString(s: String): Option[String] = {
-      Some(s)
+      val s1 = if (config.trimStrings) s.trim else s
+      Some(s1)
     }
 
     def asInt(s: String): Option[Int] = {

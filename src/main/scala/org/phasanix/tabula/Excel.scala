@@ -99,14 +99,12 @@ object Excel {
 
     def open(config: Tabular.Config, file: File): Option[Tabular.Container] = {
       if (file.exists()) {
-        Tabular.extensionOf(file.getName).map { ext =>
-          ext match {
-            case "xlsx" =>
-              new XlsxContainer(config, OPCPackage.open(file))
+        Tabular.extensionOf(file.getName).map {
+          case "xlsx" =>
+            new XlsxContainer(config, OPCPackage.open(file))
 
-            case "xls" =>
-              new XlsContainer(config, Left(file))
-          }
+          case "xls" =>
+            new XlsContainer(config, Left(file))
         }
       } else {
         None
@@ -293,7 +291,8 @@ object Excel {
 
       cellValueType(cell) match {
         case Cell.CELL_TYPE_STRING =>
-          Some(cell.getStringCellValue)
+          val s = cell.getStringCellValue
+          Some(if (config.trimStrings) s.trim else s)
         case Cell.CELL_TYPE_NUMERIC =>
           Some(cell.getNumericCellValue.toInt.toString)
         case t@_ =>

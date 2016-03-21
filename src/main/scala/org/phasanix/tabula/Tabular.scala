@@ -30,12 +30,16 @@ object Tabular {
   /**
     * Configuration, controlling how values are converted
     */
-  case class Config(dateFmtStr: String, dateTimeFmtStr: String) {
+  case class Config(dateFmtStr: String, dateTimeFmtStr: String, trimStrings: Boolean) {
     /** format string for parsing LocalDate */
     val dateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFmtStr)
 
     /** format string for parsing LocalDateTime */
     val dateTimeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFmtStr)
+  }
+
+  object Config {
+    def default: Config = Config("dd-MM-yyyy", "dd-MM-yyyy HH:mm:ss", true)
   }
 
   /**

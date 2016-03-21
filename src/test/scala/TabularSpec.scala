@@ -6,7 +6,7 @@ import org.phasanix.tabula._
 
 class TabularSpec extends FlatSpec with Matchers {
 
-  val config = Tabular.Config(dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss")
+  val config = Tabular.Config(dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss", trimStrings = true)
 
   val dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
@@ -95,5 +95,5 @@ class TabularSpec extends FlatSpec with Matchers {
   it should "work for XLSX" in {
     testInvalidConversions("/testdata.xlsx")
   }
-  
+
 }
