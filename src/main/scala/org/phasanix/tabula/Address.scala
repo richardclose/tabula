@@ -6,4 +6,11 @@ package org.phasanix.tabula
   */
 trait Address
 
+/**
+  * No address.
+  * Excel will interpret this as the first possible address in a source:
+  * top left cell of first worksheet in workbook.
+  * CSV addressing is not implemented yet.
+  */
 case object NilAddress extends Address
+

@@ -1,11 +1,11 @@
 package org.phasanix.tabula
 
-import java.io.{FileInputStream, InputStream, File}
-import java.time.{LocalDateTime, ZoneId, LocalDate}
+import java.io.{File, FileInputStream, InputStream}
+import java.time.{LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.openxml4j.opc.OPCPackage
-import org.apache.poi.ss.usermodel.{Sheet, Cell, Row, Workbook}
+import org.apache.poi.ss.usermodel._
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 
 import scala.collection.mutable
@@ -226,7 +226,7 @@ object Excel {
 
     while (index < last) {
       val c = row.getCell(index)
-      if (c != null && c.getCellType == Cell.CELL_TYPE_STRING) {
+      if (c != null && c.getCellTypeEnum == CellType.STRING) {
         arr += c.getStringCellValue
         index += 1
       } else {
@@ -239,8 +239,8 @@ object Excel {
 
   private def isCellBlank(cell: Cell): Boolean =
     cell == null ||
-      (cell.getCellType == Cell.CELL_TYPE_BLANK) ||
-      (cell.getCellType == Cell.CELL_TYPE_STRING && cell.getStringCellValue == "")
+      (cell.getCellTypeEnum == CellType.BLANK) ||
+      (cell.getCellTypeEnum == CellType.STRING && cell.getStringCellValue == "")
 
   private def isRowBlank(sheet: Sheet, rowIndex: Int, from: Int, to: Int): Boolean =
     rowIndex > sheet.getLastRowNum || isRowBlank(sheet.getRow(rowIndex), from, to)
@@ -253,32 +253,23 @@ object Excel {
   /**
     * Type of cell value, whether literal or cached formula value
     */
-  private def cellValueType(cell: Cell): Int = {
+  private def cellValueType(cell: Cell): CellType = {
     if (cell == null) {
-      Cell.CELL_TYPE_BLANK
+      CellType.BLANK
     } else {
-      cell.getCellType match {
-        case Cell.CELL_TYPE_FORMULA => cell.getCachedFormulaResultType
+      cell.getCellTypeEnum match {
+        case CellType.FORMULA => cell.getCachedFormulaResultTypeEnum
         case t @ _ => t
       }
     }
   }
 
   private def typeStr(cell: Cell): String = {
-    val ct = cell.getCellType
-    if (ct == Cell.CELL_TYPE_FORMULA)
-      typeStr(ct) + "[" + typeStr(cell.getCachedFormulaResultType) + "]"
+    val ct = cell.getCellTypeEnum
+    if (ct == CellType.FORMULA)
+      s"$ct[${cell.getCachedFormulaResultTypeEnum.toString}]"
     else
-      typeStr(ct)
-  }
-
-  private def typeStr(ct: Int): String = ct match {
-    case Cell.CELL_TYPE_BLANK => "BLANK"
-    case Cell.CELL_TYPE_BOOLEAN => "BOOLEAN"
-    case Cell.CELL_TYPE_ERROR => "ERROR"
-    case Cell.CELL_TYPE_FORMULA => "FORMULA"
-    case Cell.CELL_TYPE_NUMERIC => "NUMERIC"
-    case Cell.CELL_TYPE_STRING => "STRING"
+      ct.toString
   }
 
   private def dumpCell(cell: Cell) = {
@@ -290,10 +281,10 @@ object Excel {
     def asString(cell: Cell): Option[String] = {
 
       cellValueType(cell) match {
-        case Cell.CELL_TYPE_STRING =>
+        case CellType.STRING =>
           val s = cell.getStringCellValue
           Some(if (config.trimStrings) s.trim else s)
-        case Cell.CELL_TYPE_NUMERIC =>
+        case CellType.NUMERIC =>
           Some(cell.getNumericCellValue.toInt.toString)
         case t@_ =>
           None
@@ -302,31 +293,31 @@ object Excel {
 
     def asInt(cell: Cell): Option[Int] = {
       cellValueType(cell) match {
-        case Cell.CELL_TYPE_NUMERIC => Some(cell.getNumericCellValue.toInt)
+        case CellType.NUMERIC => Some(cell.getNumericCellValue.toInt)
         case _ => None
       }
     }
 
     def asLong(cell: Cell): Option[Long] = {
       cellValueType(cell) match {
-        case Cell.CELL_TYPE_NUMERIC => Some(cell.getNumericCellValue.toLong)
+        case CellType.NUMERIC => Some(cell.getNumericCellValue.toLong)
         case _ => None
       }
     }
 
     def asDouble(cell: Cell): Option[Double] = {
       cellValueType(cell) match {
-        case Cell.CELL_TYPE_NUMERIC => Some(cell.getNumericCellValue)
+        case CellType.NUMERIC => Some(cell.getNumericCellValue)
         case _ => None
       }
     }
 
     def asLocalDate(cell: Cell): Option[LocalDate] = {
       cellValueType(cell) match {
-        case Cell.CELL_TYPE_NUMERIC =>
+        case CellType.NUMERIC =>
           Some(cell.getDateCellValue.toInstant.atZone(ZoneId.systemDefault()).toLocalDate)
 
-        case Cell.CELL_TYPE_STRING =>
+        case CellType.STRING =>
           try {
             Some(LocalDate.from(config.dateFmt.parse(cell.getStringCellValue)))
           } catch {
@@ -339,11 +330,14 @@ object Excel {
     }
 
     def asLocalDateTime(cell: Cell): Option[LocalDateTime] = {
-      cellValueType(cell) match {
-        case Cell.CELL_TYPE_NUMERIC =>
-          Some(cell.getDateCellValue.toInstant.atZone(ZoneId.systemDefault()).toLocalDateTime)
 
-        case Cell.CELL_TYPE_STRING =>
+      cellValueType(cell) match {
+        case CellType.NUMERIC =>
+          val date = DateUtil.getJavaDate(cell.getNumericCellValue)
+          val zonedDateTime: ZonedDateTime = date.toInstant.atZone(ZoneId.systemDefault())
+          Some(zonedDateTime.toLocalDateTime)
+
+        case CellType.STRING =>
           try {
             Some(LocalDateTime.from(config.dateTimeFmt.parse(cell.getStringCellValue)))
           } catch {
@@ -358,8 +352,12 @@ object Excel {
     // Very lenient interpretation of bools here.
     def asBoolean(cell: Cell): Option[Boolean] = {
       cellValueType(cell) match {
-        case Cell.CELL_TYPE_NUMERIC =>
+        case CellType.BOOLEAN =>
+          Some(cell.getBooleanCellValue)
+
+        case CellType.NUMERIC =>
           asInt(cell).map (_ != 0)
+
         case _ =>
           asString(cell).flatMap { s =>
             s.toLowerCase match {

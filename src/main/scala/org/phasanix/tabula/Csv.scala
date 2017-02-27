@@ -1,11 +1,12 @@
 package org.phasanix.tabula
 
-import java.io.{InputStream, File, InputStreamReader}
+import java.io.{File, InputStream, InputStreamReader}
 import java.nio.charset.Charset
 
-import org.apache.commons.csv.{CSVFormat, CSVRecord, CSVParser}
-import collection.JavaConverters._
+import org.apache.commons.csv.{CSVFormat, CSVParser, CSVRecord}
+import org.phasanix.tabula.Tabular.Container
 
+import collection.JavaConverters._
 import reflect.runtime.universe._
 
 /**
@@ -41,6 +42,13 @@ object Csv {
 
   }
 
+  /**
+    * Container for CSV files.
+    * Addressing is not implemented (yet?): all CSV files are expected to start
+    * with the range at the top left
+    * @param config config
+    * @param parser parser
+    */
   class CsvContainer(config: Tabular.Config, parser: CSVParser) extends Tabular.Container {
     val conv: Converter[String] = Converter.makeStringConverter(config)
 
