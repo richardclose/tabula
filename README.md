@@ -54,3 +54,23 @@ for {
 }
 
 ```
+
+### Signatures
+
+`Signature` abstracts the process of sniffing the content of a file to check if 
+the content matches what is expected. My use case for this is a system that accepts
+files with a set of possible formats, and uses the `Signature` to determine how 
+to process them. Two implementations of `Signature` are provided: 
+`Signature.MatchHeaders` has a list of column header names that must be present
+for a match to succeed, and `Signature.MatchSheetNames` has a list of worksheet
+names.
+
+```scala
+for {
+  container <- Tabular.open("/tmp/data.csv")
+} {
+  if (Signature.matchHeaders("Latitude", "Longitude").matches(container)) {
+    // It's the one!
+  }
+}
+```

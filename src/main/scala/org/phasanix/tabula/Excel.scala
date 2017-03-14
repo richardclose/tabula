@@ -47,6 +47,9 @@ object Excel {
     def close(): Unit = workbook.close()
     def removeTab(tab: ExcelTabular): Unit = {}
     val workbook: Workbook
+    def sheetNames: Seq[String] = {
+      (0 until workbook.getNumberOfSheets).map(i => workbook.getSheetName(i))
+    }
   }
 
   class XlsContainer(config: Tabular.Config, input: Either[File, InputStream]) extends ExcelContainer(config) {

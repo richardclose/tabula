@@ -148,6 +148,17 @@ object Tabular {
     open(config, new File(filename))
 
   /**
+    * Maybe invoke block with container, then close
+    */
+  def withContainer[A](config: Config, file: File)(block: Container => A): Option[A] = {
+    open(config, file).map { cont =>
+      val ret = block(cont)
+      cont.close()
+      ret
+    }
+  }
+
+  /**
     * Parse the given address string specifically for
     * the given extension.
     */
