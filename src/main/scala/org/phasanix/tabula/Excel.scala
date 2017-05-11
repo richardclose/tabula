@@ -1,6 +1,7 @@
 package org.phasanix.tabula
 
 import java.io.{File, FileInputStream, InputStream}
+import java.nio.file.Files
 import java.time.{LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
@@ -13,7 +14,8 @@ import scala.reflect.runtime.universe._
 
 object Excel {
 
-  class ExcelTabular(val parent: Tabular.Container, val conv: ExcelConverter, headers: Seq[String], startCell: Cell) extends Tabular {
+  class ExcelTabular(val parent: Tabular.Container, val conv: ExcelConverter, headers: Seq[String], startCell: Cell)
+    extends Tabular {
 
     def columnNames: Seq[String] = headers
 
@@ -32,6 +34,26 @@ object Excel {
         r
       }
     }
+
+    def estimatedRowCount: Int = {
+      var ret = 0
+      var row = startCell.getRowIndex + 1
+      val col = startCell.getColumnIndex
+      val endCol = col + headers.length
+      var sheet = startCell.getSheet
+      var done = false
+      while (!done) {
+        if (isRowBlank(sheet, row, col, endCol)) {
+          done = true
+        } else {
+          ret += 1
+          row += 1
+        }
+      }
+
+      ret
+    }
+
   }
 
   class ExcelRow(val parent: ExcelTabular, row: Row, startCol: Int) extends Tabular.Row {
@@ -41,18 +63,27 @@ object Excel {
 
   }
 
-  abstract class ExcelContainer(config: Tabular.Config) extends Tabular.Container {
+  abstract class ExcelContainer(config: Tabular.Config, maybeSz: Option[Long])
+    extends Tabular.Container {
+
     private val openTabs: mutable.Set[ExcelTabular] = mutable.Set.empty[ExcelTabular]
     protected val conv = new ExcelConverter(config)
+
     def close(): Unit = workbook.close()
+
     def removeTab(tab: ExcelTabular): Unit = {}
+
     val workbook: Workbook
+
     def sheetNames: Seq[String] = {
       (0 until workbook.getNumberOfSheets).map(i => workbook.getSheetName(i))
     }
+
+    def fileSize: Option[Long] = maybeSz
   }
 
-  class XlsContainer(config: Tabular.Config, input: Either[File, InputStream]) extends ExcelContainer(config) {
+  class XlsContainer(config: Tabular.Config, input: Either[File, InputStream], maybeSz: Option[Long])
+    extends ExcelContainer(config, maybeSz) {
 
     val workbook: Workbook = input.fold (
       file => new HSSFWorkbook(new FileInputStream(file)),
@@ -67,7 +98,8 @@ object Excel {
     }
   }
 
-  class XlsxContainer(config: Tabular.Config, pkg: OPCPackage) extends ExcelContainer(config) {
+  class XlsxContainer(config: Tabular.Config, pkg: OPCPackage, maybeSz: Option[Long])
+    extends ExcelContainer(config, maybeSz) {
 
     val workbook: Workbook = new XSSFWorkbook(pkg)
 
@@ -84,16 +116,16 @@ object Excel {
   object ContainerSource extends Tabular.ContainerSource {
     val exts: Seq[String] = "xlsx" :: "xls" :: Nil
 
-    def open(config: Tabular.Config, is: InputStream, ext: String): Option[Tabular.Container] = {
+    def open(config: Tabular.Config, is: InputStream, ext: String, maybeSizeHint: Option[Long]): Option[Tabular.Container] = {
       if (is == null) {
         None
       } else {
         val src = ext match {
           case "xlsx" =>
-            new XlsxContainer(config, OPCPackage.open(is))
+            new XlsxContainer(config, OPCPackage.open(is), maybeSizeHint)
 
           case "xls" =>
-            new XlsContainer(config, Right(is))
+            new XlsContainer(config, Right(is), maybeSizeHint)
         }
 
         Some(src)
@@ -102,12 +134,13 @@ object Excel {
 
     def open(config: Tabular.Config, file: File): Option[Tabular.Container] = {
       if (file.exists()) {
+        val maybeSz = Some(Files.size(file.toPath))
         Tabular.extensionOf(file.getName).map {
           case "xlsx" =>
-            new XlsxContainer(config, OPCPackage.open(file))
+            new XlsxContainer(config, OPCPackage.open(file), maybeSz)
 
           case "xls" =>
-            new XlsContainer(config, Left(file))
+            new XlsContainer(config, Left(file), maybeSz)
         }
       } else {
         None
@@ -275,9 +308,8 @@ object Excel {
       ct.toString
   }
 
-  private def dumpCell(cell: Cell) = {
-    "<Cell r=%d c=%d type=%s value=\"%s\" />".format(cell.getRowIndex, cell.getColumnIndex, typeStr(cell), cell)
-  }
+  private def dumpCell(cell: Cell) =
+    s"""<Cell r=${cell.getRowIndex} c=${cell.getColumnIndex} type=${typeStr(cell)} value="$cell" />"""
 
   class ExcelConverter(config: Tabular.Config) extends Converter[Cell](config) {
 

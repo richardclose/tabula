@@ -2,6 +2,7 @@ package org.phasanix.tabula
 
 import java.io.{File, InputStream, InputStreamReader}
 import java.nio.charset.Charset
+import java.nio.file.Files
 
 import org.apache.commons.csv.{CSVFormat, CSVParser, CSVRecord}
 import org.phasanix.tabula.Tabular.Container
@@ -28,6 +29,8 @@ object Csv {
     def columnNames: Seq[String] = cols
 
     def rows: Iterator[Tabular.Row] = it.map(new CsvRow(this, _))
+
+    def estimatedRowCount: Int = parent.fileSize.map(sz => (sz / 80).toInt).getOrElse(100)
   }
 
   class CsvRow(val parent: CsvTabular, rec: CSVRecord) extends Tabular.Row {
@@ -49,7 +52,8 @@ object Csv {
     * @param config config
     * @param parser parser
     */
-  class CsvContainer(config: Tabular.Config, parser: CSVParser) extends Tabular.Container {
+  class CsvContainer(config: Tabular.Config, parser: CSVParser, maybeSz: Option[Long])
+    extends Tabular.Container {
     val conv: Converter[String] = Converter.makeStringConverter(config)
 
     def get(address: Address): Option[Tabular] = {
@@ -57,27 +61,30 @@ object Csv {
     }
 
     def close(): Unit = parser.close()
+
+    def fileSize: Option[Long] = maybeSz
   }
 
   object ContainerSource extends Tabular.ContainerSource {
 
     val exts: Seq[String] = Seq("csv")
 
-    def open(config: Tabular.Config, is: InputStream, ext: String): Option[Tabular.Container] = {
+    def open(config: Tabular.Config, is: InputStream, ext: String, maybeSizeHint: Option[Long]): Option[Tabular.Container] = {
       if (is == null) {
         None
       } else {
         val reader = new InputStreamReader(is)
         val parser = new CSVParser(reader, CSVFormat.DEFAULT)
-        Some(new CsvContainer(config, parser))
+        Some(new CsvContainer(config, parser, maybeSizeHint))
       }
 
     }
 
     def open(config: Tabular.Config, file: File): Option[Tabular.Container] = {
       if (file.exists()) {
+        val size = Some(Files.size(file.toPath))
         val parser = CSVParser.parse(file, Charset.forName("UTF-8"), CSVFormat.DEFAULT.withHeader())
-        Some(new CsvContainer(config, parser))
+        Some(new CsvContainer(config, parser, size))
       } else {
         None
       }

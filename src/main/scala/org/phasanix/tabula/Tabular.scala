@@ -19,6 +19,8 @@ trait Tabular {
   /** Iterator over rows */
   def rows: Iterator[Tabular.Row]
 
+  def estimatedRowCount: Int
+
   private lazy val colIndexMap: Map[String, Int] = columnNames.zipWithIndex.toMap
 
   /** Index of given column header name */
@@ -72,6 +74,11 @@ object Tabular {
       * Close this container.
       */
     def close(): Unit
+
+    /**
+      * Size of source file, if known
+      */
+    def fileSize: Option[Long]
   }
 
   /**
@@ -89,7 +96,7 @@ object Tabular {
       * Open the given InputStream. This may cause the whole InputStream
       * to be read into memory (e.g. with Excel files).
       */
-    def open(config: Config, is: InputStream, ext: String): Option[Container]
+    def open(config: Config, is: InputStream, ext: String, maybeSizeHint: Option[Long]): Option[Container]
 
     /**
       * Open the given File.
@@ -121,12 +128,13 @@ object Tabular {
     * @param config configuration
     * @param is input stream
     * @param ext file extension
+    * @param maybeSizeHint Some(streamlength) in bytes, if the length is known, else None
     * @return opened source.
     */
-  def open(config: Config, is: InputStream, ext: String): Option[Container] = {
+  def open(config: Config, is: InputStream, ext: String, maybeSizeHint: Option[Long] = None): Option[Container] = {
     for {
       ss <- containerSources.find(_.exts.contains(ext))
-      src <- ss.open(config, is, ext)
+      src <- ss.open(config, is, ext, maybeSizeHint)
     } yield src
   }
 
