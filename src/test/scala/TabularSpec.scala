@@ -1,3 +1,5 @@
+import java.io.ByteArrayInputStream
+import java.nio.charset.Charset
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -6,8 +8,7 @@ import org.phasanix.tabula._
 
 class TabularSpec extends FlatSpec with Matchers {
 
-  val config = Tabular.Config(dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss", trimStrings = true)
-
+  val config = Tabular.Config.default.copy(dateFmtStr = "dd-MMM-yyyy")
   val dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
   def testValidConversions(name: String): Unit = {
@@ -19,6 +20,7 @@ class TabularSpec extends FlatSpec with Matchers {
     } {
       for ((row, i) <- tab.rows.zipWithIndex) {
         if (i == 0) {
+          val d = row.get[LocalDate]("a date")
           row.get[LocalDate]("a date").get.format(dateFmt) shouldEqual "12/05/2016"
           row.get[Int]("an int").get shouldEqual 42
           row.get[Long]("an int").get shouldEqual 42L
@@ -94,6 +96,38 @@ class TabularSpec extends FlatSpec with Matchers {
 
   it should "work for XLSX" in {
     testInvalidConversions("/testdata.xlsx")
+  }
+
+  "charsets" should "load correctly" in {
+
+    val csvStr =
+      """First,Second,Third
+£10,Crêpe,10¢
+"""
+
+    val charsets = "UTF-8" :: "windows-1252" :: "ISO-8859-1" :: Nil
+    val values = csvStr.split("\n")(1).split(",")
+
+    val passes = for {
+      charset <- charsets.map(Charset.forName)
+    } yield {
+      val bytes = csvStr.getBytes(charset)
+      val is = new ByteArrayInputStream(bytes)
+      val conf = Tabular.Config.default.copy(charsetName = charset.name())
+
+      val maybePassed = for {
+        cont <- Tabular.open(conf, is, "csv")
+        tab <- cont.get(NilAddress)
+      } yield {
+        val row = tab.rows.toSeq.head
+        val cells = (0 until row.columnCount).flatMap(i => row.get[String](i))
+        values.sameElements(cells)
+      }
+
+      maybePassed.get
+    }
+
+    passes.count(_ == true) shouldBe charsets.length
   }
 
 }

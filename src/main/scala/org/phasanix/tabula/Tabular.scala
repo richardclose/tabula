@@ -1,6 +1,7 @@
 package org.phasanix.tabula
 
 import java.io.{File, InputStream}
+import java.nio.charset.Charset
 import java.time.format.DateTimeFormatter
 
 import reflect.runtime.universe._
@@ -32,16 +33,19 @@ object Tabular {
   /**
     * Configuration, controlling how values are converted
     */
-  case class Config(dateFmtStr: String, dateTimeFmtStr: String, trimStrings: Boolean) {
+  case class Config(dateFmtStr: String, dateTimeFmtStr: String, trimStrings: Boolean, charsetName: String) {
     /** format string for parsing LocalDate */
     val dateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFmtStr)
 
     /** format string for parsing LocalDateTime */
     val dateTimeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFmtStr)
+
+    /** Charset to read streams with */
+    def charset: Charset = Charset.forName(charsetName)
   }
 
   object Config {
-    def default: Config = Config("dd-MM-yyyy", "dd-MM-yyyy HH:mm:ss", true)
+    def default: Config = Config("dd-MM-yyyy", "dd-MM-yyyy HH:mm:ss", trimStrings = true, charsetName = "UTF-8")
   }
 
   /**

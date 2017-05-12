@@ -73,7 +73,7 @@ object Csv {
       if (is == null) {
         None
       } else {
-        val reader = new InputStreamReader(is)
+        val reader = new InputStreamReader(is, config.charset)
         val parser = new CSVParser(reader, CSVFormat.DEFAULT)
         Some(new CsvContainer(config, parser, maybeSizeHint))
       }
@@ -83,7 +83,7 @@ object Csv {
     def open(config: Tabular.Config, file: File): Option[Tabular.Container] = {
       if (file.exists()) {
         val size = Some(Files.size(file.toPath))
-        val parser = CSVParser.parse(file, Charset.forName("UTF-8"), CSVFormat.DEFAULT.withHeader())
+        val parser = CSVParser.parse(file, config.charset, CSVFormat.DEFAULT.withHeader())
         Some(new CsvContainer(config, parser, size))
       } else {
         None

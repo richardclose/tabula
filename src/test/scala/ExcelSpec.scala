@@ -5,7 +5,7 @@ import org.phasanix.tabula._
 
 class ExcelSpec extends FlatSpec with Matchers {
 
-  val config = Tabular.Config(dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss", trimStrings = true)
+  val config = Tabular.Config.default // (dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss", trimStrings = true)
 
   val dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
