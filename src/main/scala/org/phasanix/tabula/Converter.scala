@@ -67,17 +67,18 @@ object Converter {
 
     def asInt(s: String): Option[Int] = {
       try {
-        Some(s.toInt)
+        if (s.length == 0) None
+        else Some(s.toInt)
       } catch {
         case ex: Exception =>
-          println(s"asInt: s=$s ex=$ex")
           None
       }
     }
 
     def asLong(s: String): Option[Long] = {
       try {
-        Some(s.toLong)
+        if (s.length == 0) None
+        else Some(s.toLong)
       } catch {
         case ex: Exception =>
           None

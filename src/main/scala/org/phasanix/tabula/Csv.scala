@@ -16,15 +16,7 @@ import reflect.runtime.universe._
 
 object Csv {
 
-  class CsvTabular(val parent: Tabular.Container, val conv: Converter[String], parser: CSVParser) extends Tabular {
-
-    private val it = parser.iterator().asScala
-    private val cols: Seq[String] = if (it.hasNext) {
-      val row = it.next()
-      Array.tabulate(row.size()){row.get}
-    } else {
-      Seq.empty
-    }
+  class CsvTabular(val parent: Tabular.Container, val conv: Converter[String], it: Iterator[CSVRecord], cols: Seq[String]) extends Tabular {
 
     def columnNames: Seq[String] = cols
 
@@ -56,8 +48,17 @@ object Csv {
     extends Tabular.Container {
     val conv: Converter[String] = Converter.makeStringConverter(config)
 
+    private val it = parser.iterator().asScala
+
+    private val cols = if (it.hasNext) {
+      val row = it.next()
+      Seq.tabulate(row.size()){row.get}
+    } else {
+      Seq.empty[String]
+    }
+
     def get(address: Address): Option[Tabular] = {
-      Some(new Csv.CsvTabular(this, conv, parser))
+      Some(new Csv.CsvTabular(this, conv, it, cols))
     }
 
     def close(): Unit = parser.close()
