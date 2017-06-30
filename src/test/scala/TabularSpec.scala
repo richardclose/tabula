@@ -57,7 +57,7 @@ class TabularSpec extends FlatSpec with Matchers {
       src <- Tabular.open(config, getClass.getResourceAsStream(name), ext)
       tab <- src.get(NilAddress)
     } {
-      tab.columnNames.length shouldEqual 5
+      tab.columnNames.mkString(",") shouldEqual "a date,an int,a double,a bool,a string"
       src.close()
     }
   }

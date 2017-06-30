@@ -52,7 +52,8 @@ object Csv {
 
     private val cols = if (it.hasNext) {
       val row = it.next()
-      Seq.tabulate(row.size()){row.get}
+      val ret = Seq.tabulate(row.size()){row.get}
+      ret
     } else {
       Seq.empty[String]
     }
@@ -84,7 +85,7 @@ object Csv {
     def open(config: Tabular.Config, file: File): Option[Tabular.Container] = {
       if (file.exists()) {
         val size = Some(Files.size(file.toPath))
-        val parser = CSVParser.parse(file, config.charset, CSVFormat.DEFAULT.withHeader())
+        val parser = CSVParser.parse(file, config.charset, CSVFormat.DEFAULT)
         Some(new CsvContainer(config, parser, size))
       } else {
         None

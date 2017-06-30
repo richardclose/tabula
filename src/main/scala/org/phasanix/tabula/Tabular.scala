@@ -24,6 +24,8 @@ trait Tabular {
 
   private lazy val colIndexMap: Map[String, Int] = columnNames.zipWithIndex.toMap
 
+  def columnIndexMap: Map[String, Int] = colIndexMap
+
   /** Index of given column header name */
   def indexOf(column: String): Option[Int] = colIndexMap.get(column)
 }
