@@ -44,4 +44,20 @@ class ExcelSpec extends FlatSpec with Matchers {
     }
   }
 
+  it should "load long digit string correctly" in {
+    for {
+      src <- Tabular.open(config, getClass.getResourceAsStream("testdata1.xlsx"), "xlsx")
+      tab <- src.get(NilAddress)
+    } {
+
+      val rows = tab.rows.toSeq
+      val row = rows.head
+      val s = row.get[String]("longdigitstring").get
+      src.close()
+      s shouldEqual "123456789876"
+    }
+
+  }
+
+
 }

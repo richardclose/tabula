@@ -319,8 +319,20 @@ object Excel {
         case CellType.STRING =>
           val s = cell.getStringCellValue
           Some(if (config.trimStrings) s.trim else s)
+
         case CellType.NUMERIC =>
-          Some(cell.getNumericCellValue.toInt.toString)
+          // Unsatifactory: the cell contents could be
+          // integer or not, we can't tell as it is
+          // coerced to Double. If there are significant
+          // figures after the decimal, treat as double.
+          // Use case: reference number which is long
+          // string of digits, must be treated as int.
+          val d = cell.getNumericCellValue
+          val s = if (d > Long.MaxValue || math.abs(d - math.rint(d)) > 2*math.ulp(d))
+            d.toString
+          else
+            d.toLong.toString
+          Some(s)
         case t@_ =>
           None
       }
