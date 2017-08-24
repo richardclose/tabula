@@ -173,7 +173,10 @@ object Excel {
     }
   }
 
-  case class ExcelAddress(sheet: Option[String], range: String) extends Address
+  case class ExcelAddress(sheet: Option[String], range: String) extends Address {
+    override def toString: String =
+      sheet.map(_ + "!").getOrElse("") + range
+  }
 
   private def cellFromAddr(addr: Address, workbook: Workbook): Option[Cell] = {
 

@@ -12,5 +12,7 @@ trait Address
   * top left cell of first worksheet in workbook.
   * CSV addressing is not implemented yet.
   */
-case object NilAddress extends Address
+case object NilAddress extends Address {
+  override def toString: String = "nil"
+}
 

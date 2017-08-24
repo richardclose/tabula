@@ -35,14 +35,17 @@ object Tabular {
   /**
     * Configuration, controlling how values are converted
     */
-  case class Config(dateFmtStr: String, dateTimeFmtStr: String, trimStrings: Boolean, charsetName: String) {
+  case class Config(dateFmtStr: String,
+                    dateTimeFmtStr: String,
+                    trimStrings: Boolean,
+                    charsetName: String) {
     /** format string for parsing LocalDate */
     val dateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFmtStr)
 
     /** format string for parsing LocalDateTime */
     val dateTimeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFmtStr)
 
-    /** Charset to read streams with */
+    /** Charset for reading streams */
     def charset: Charset = Charset.forName(charsetName)
   }
 
@@ -119,6 +122,7 @@ object Tabular {
 
   /**
     * Extension of the given filename, if any.
+    * (not including the period)
     */
   def extensionOf(filename: String): Option[String] = {
     val i = filename.lastIndexOf('.')

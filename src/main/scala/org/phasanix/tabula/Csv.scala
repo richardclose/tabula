@@ -42,7 +42,15 @@ object Csv {
   /**
     * Container for CSV files.
     * Addressing is not implemented (yet?): all CSV files are expected to start
-    * with the range at the top left
+    * with the range at the top left.
+    *
+    * Implementation note: Apache CSVParser is necessarily forward only. To support
+    * reading of multiple ranges, when get is called with a CsvAddress, all rows
+    * before that address are added to a mutable buffer. For this scheme to work
+    * correctly, calls to get(CsvAddress) should be made in reverse order of row
+    * number, and before any rows are read, and ranges cannot overlap rows.
+    * NilAddress and CsvAddress can't be used together.
+    *
     * @param config config
     * @param parser parser
     */
@@ -50,22 +58,35 @@ object Csv {
     extends Tabular.Container {
     val conv: Converter[String] = Converter.makeStringConverter(config)
 
-    private val it = parser.iterator().asScala
+    private val buffer = collection.mutable.ArrayBuffer.empty[CSVRecord]
+    private val colsForAddress = collection.concurrent.TrieMap.empty[String, Seq[String]]
 
-    private lazy val cols = if (it.hasNext) {
-      val row = it.next()
-      val ret = Seq.tabulate(row.size()){row.get}
-      ret
-    } else {
-      Seq.empty[String]
+    private def getCols(address: Address, it: Iterator[CSVRecord]) = {
+      colsForAddress.getOrElseUpdate(address.toString, {
+        if (it.hasNext) {
+          val rec = it.next()
+          rec.iterator().asScala.toIndexedSeq
+        } else {
+          Seq.empty
+        }
+      })
     }
 
     def get(address: Address): Option[Tabular] = {
       address match {
         case CsvAddress(row, col) =>
-          val discarded = it.take(row).map(r => r.iterator().asScala.toIndexedSeq).toIndexedSeq
-          val theCols = cols
-          if (col > theCols.length)
+
+          val it = if (row > buffer.length) {
+            val i = parser.iterator().asScala
+            buffer.appendAll(i.take(row - buffer.length))
+            i
+          } else {
+            buffer.iterator.drop(row)
+          }
+
+          val cols = getCols(address, it)
+
+          if (col > cols.length)
             None
           else {
             val c = cols.drop(col)
@@ -73,7 +94,8 @@ object Csv {
           }
 
         case NilAddress =>
-          Some(new Csv.CsvTabular(this, conv, it, cols, 0))
+          val it = parser.iterator().asScala
+          Some(new Csv.CsvTabular(this, conv, it, getCols(address, it), 0))
 
         case _ =>
           None
@@ -123,6 +145,10 @@ object Csv {
     }
   }
 
-  case class CsvAddress(row: Int, col: Int) extends Address
+  case class CsvAddress(row: Int, col: Int) extends Address {
+    override def toString: String = {
+      s"R${row+1}C${col+1}"
+    }
+  }
 
 }
