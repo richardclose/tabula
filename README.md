@@ -10,6 +10,9 @@ identified by the address. The contiguous range of non-blank cells to the right 
 are the headers, and the contiguous range of non-blank rows (of the same width as the headers)
 are the rows.
 
+There is limited support for addresses in CSV files. Addresses must be in "A1" format, and if 
+multiple ranges are addressed, they must be accessed in reverse order of row number.
+
 ## Examples
 
 The following examples assume test files with appropriate contents.
