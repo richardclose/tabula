@@ -46,10 +46,10 @@ object Csv {
     *
     * Implementation note: Apache CSVParser is necessarily forward only. To support
     * reading of multiple ranges, when get is called with a CsvAddress, all rows
-    * before that address are added to a mutable buffer. For this scheme to work
-    * correctly, calls to get(CsvAddress) should be made in reverse order of row
-    * number, and before any rows are read, and ranges cannot overlap rows.
-    * NilAddress and CsvAddress can't be used together.
+    * before that address are added to a mutable buffer. Rows up to and including
+    * the highest specified row are buffered. Rows after that point are read directly
+    * from the forward-only CSVParser iterator. This scheme will fail if get is called
+    * with an address referring to a row greater than rows that are read unbuffered.
     *
     * @param config config
     * @param parser parser
@@ -59,43 +59,70 @@ object Csv {
     val conv: Converter[String] = Converter.makeStringConverter(config)
 
     private val buffer = collection.mutable.ArrayBuffer.empty[CSVRecord]
-    private val colsForAddress = collection.concurrent.TrieMap.empty[String, Seq[String]]
 
-    private def getCols(address: Address, it: Iterator[CSVRecord]) = {
-      colsForAddress.getOrElseUpdate(address.toString, {
-        if (it.hasNext) {
-          val rec = it.next()
-          rec.iterator().asScala.toIndexedSeq
+    private var iteratorUsed: Boolean = false
+
+    // 1) Selects buffered vs direct iteration
+    // 2) Terminates at completely blank row
+    private class It(row: Int) extends Iterator[CSVRecord] {
+
+      private val usingBuffer = row < buffer.length
+
+      private lazy val resolvedIterator = (if (row < buffer.length) {
+        buffer.iterator.drop(row)
+      } else {
+        if (row != parser.getCurrentLineNumber)
+          throw new Exception(s"iterator out of position for row=$row, currentLine=${parser.getCurrentLineNumber}")
+        parser.iterator().asScala
+      }).buffered
+
+      def hasNext: Boolean = {
+        if (resolvedIterator.hasNext) {
+          val row = resolvedIterator.head
+          val isRowEmpty = row.iterator().asScala.forall(_.trim.isEmpty)
+          !isRowEmpty
         } else {
-          Seq.empty
+          false
         }
-      })
+      }
+
+      def next(): CSVRecord = {
+        iteratorUsed ||= !usingBuffer
+        resolvedIterator.next()
+      }
     }
 
     def get(address: Address): Option[Tabular] = {
       address match {
         case CsvAddress(row, col) =>
 
-          val it = if (row > buffer.length) {
+          if (iteratorUsed && row >= buffer.length)
+            throw new Exception(s"Illegal call to get($address) after direct iteration of rows")
+
+          val (it, maybeRec) = if (row < buffer.length) {
+            val i = buffer.iterator.drop(row)
+            val rec = if (i.hasNext) Some(i.next()) else None
+            (i, rec)
+          } else {
             val i = parser.iterator().asScala
             buffer.appendAll(i.take(row - buffer.length))
-            i
-          } else {
-            buffer.iterator.drop(row)
+            val rec = if (i.hasNext) Some(i.next()) else None
+            rec.foreach(buffer.append(_))
+            (i, rec)
           }
 
-          val cols = getCols(address, it)
+          val cols = maybeRec
+            .map(_.iterator().asScala.toIndexedSeq)
+            .getOrElse(Seq.empty)
 
-          if (col > cols.length)
+          if (col > cols.length) {
             None
-          else {
-            val c = cols.drop(col)
-            Some(new Csv.CsvTabular(this, conv, it, cols.drop(col), col))
+          } else {
+            Some(new Csv.CsvTabular(this, conv, new It(row + 1), cols.drop(col), col))
           }
 
         case NilAddress =>
-          val it = parser.iterator().asScala
-          Some(new Csv.CsvTabular(this, conv, it, getCols(address, it), 0))
+          get(CsvAddress(0, 0))
 
         case _ =>
           None

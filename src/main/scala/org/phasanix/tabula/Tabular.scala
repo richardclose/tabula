@@ -170,9 +170,33 @@ object Tabular {
     */
   def withContainer[A](config: Config, file: File)(block: Container => A): Option[A] = {
     open(config, file).map { cont =>
-      val ret = block(cont)
-      cont.close()
-      ret
+      try {
+        block(cont)
+      } finally {
+        cont.close()
+      }
+    }
+  }
+
+  /**
+    * Maybe invoke block with container, then close
+    *
+    * @param config configuration
+    * @param is Input stream
+    * @param ext file extension
+    * @param maybeSizeHint maybe approximate file size
+    * @param block block invoked with container
+    * @tparam A type of return value of block
+    * @return
+    */
+  def withContainer[A](config: Config, is: InputStream, ext: String, maybeSizeHint: Option[Long] = None)
+                      (block: Container => A): Option[A] = {
+    open(config, is, ext, maybeSizeHint).map { cont =>
+      try {
+        block(cont)
+      } finally {
+        cont.close()
+      }
     }
   }
 
