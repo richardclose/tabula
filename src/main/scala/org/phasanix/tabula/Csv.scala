@@ -59,6 +59,7 @@ object Csv {
     val conv: Converter[String] = Converter.makeStringConverter(config)
 
     private val buffer = collection.mutable.ArrayBuffer.empty[CSVRecord]
+    private val addressesUsed = collection.mutable.ArrayBuffer.empty[Address]
 
     private var iteratorUsed: Boolean = false
 
@@ -79,8 +80,7 @@ object Csv {
       def hasNext: Boolean = {
         if (resolvedIterator.hasNext) {
           val row = resolvedIterator.head
-          val isRowEmpty = row.iterator().asScala.forall(_.trim.isEmpty)
-          !isRowEmpty
+          row.iterator().asScala.exists(_.trim.nonEmpty)
         } else {
           false
         }
@@ -93,6 +93,7 @@ object Csv {
     }
 
     def get(address: Address): Option[Tabular] = {
+      addressesUsed.append(address)
       address match {
         case CsvAddress(row, col) =>
 
@@ -132,18 +133,23 @@ object Csv {
     def close(): Unit = parser.close()
 
     def fileSize: Option[Long] = maybeSz
+
+    override def toString: String =
+      s"<CsvContainer #buffered=${buffer.length} addresses=${addressesUsed.mkString(",")}/>"
   }
 
   object ContainerSource extends Tabular.ContainerSource {
 
     val exts: Seq[String] = Seq("csv")
 
+    private val csvFormat = CSVFormat.DEFAULT.withIgnoreEmptyLines(false)
+
     def open(config: Tabular.Config, is: InputStream, ext: String, maybeSizeHint: Option[Long]): Option[Tabular.Container] = {
       if (is == null) {
         None
       } else {
         val reader = new InputStreamReader(is, config.charset)
-        val parser = new CSVParser(reader, CSVFormat.DEFAULT)
+        val parser = new CSVParser(reader, csvFormat)
         Some(new CsvContainer(config, parser, maybeSizeHint))
       }
 
@@ -152,7 +158,7 @@ object Csv {
     def open(config: Tabular.Config, file: File): Option[Tabular.Container] = {
       if (file.exists()) {
         val size = Some(Files.size(file.toPath))
-        val parser = CSVParser.parse(file, config.charset, CSVFormat.DEFAULT)
+        val parser = CSVParser.parse(file, config.charset, csvFormat)
         Some(new CsvContainer(config, parser, size))
       } else {
         None
