@@ -316,6 +316,8 @@ object Excel {
 
   class ExcelConverter(config: Tabular.Config) extends Converter[Cell](config) {
 
+    private val stringConv = Converter.makeStringConverter(config)
+
     def asString(cell: Cell): Option[String] = {
 
       cellValueType(cell) match {
@@ -368,12 +370,7 @@ object Excel {
           Some(cell.getDateCellValue.toInstant.atZone(ZoneId.systemDefault()).toLocalDate)
 
         case CellType.STRING =>
-          try {
-            Some(LocalDate.from(config.dateFmt.parse(cell.getStringCellValue)))
-          } catch {
-            case ex: Exception =>
-              None
-          }
+          stringConv.asLocalDate(cell.getStringCellValue)
 
         case _ => None
       }
@@ -388,12 +385,7 @@ object Excel {
           Some(zonedDateTime.toLocalDateTime)
 
         case CellType.STRING =>
-          try {
-            Some(LocalDateTime.from(config.dateTimeFmt.parse(cell.getStringCellValue)))
-          } catch {
-            case ex: Exception =>
-              None
-          }
+          stringConv.asLocalDateTime(cell.getStringCellValue)
 
         case _ => None
       }

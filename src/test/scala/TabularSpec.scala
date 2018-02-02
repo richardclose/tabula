@@ -1,6 +1,6 @@
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
 
 import org.scalatest._
@@ -128,6 +128,34 @@ class TabularSpec extends FlatSpec with Matchers {
     }
 
     passes.count(_ == true) shouldBe charsets.length
+  }
+
+  it should "handle alternative date/time formats" in {
+
+    val csvStr =
+      """date,datetime
+01-Jan-2018,01-Jan-2018 01:23:45.1
+2018/01/01,2018/01/01 01:23:45.100
+"""
+
+    val bytes = csvStr.getBytes
+    val is = new ByteArrayInputStream(bytes)
+    val conf = Tabular.Config.default.copy(dateFmtStr = "dd-MMM-yyyy|yyyy/MM/dd", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss.S|yyyy/MM/dd HH:mm:ss.SSS")
+
+    val maybePassed = for {
+      cont <- Tabular.open(conf, is, "csv")
+      tab <- cont.get(NilAddress)
+    } yield {
+      val rows = tab.rows.map { r =>
+        (r.get[LocalDate](0).get, r.get[LocalDateTime](1).get)
+      }.toIndexedSeq
+
+      val b1 = rows(0)._1.isEqual(rows(1)._1)
+      val b2 = rows(0)._2.isEqual(rows(1)._2)
+      b1 && b2
+    }
+
+    maybePassed.get shouldBe true
   }
 
 }

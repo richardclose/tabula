@@ -34,16 +34,21 @@ object Tabular {
 
   /**
     * Configuration, controlling how values are converted
+    * @param dateFmtStr list of alternative date format strings, separated by '|'
+    * @param dateTimeFmtStr list of alternative datetime format strings, separated by '|'
+    * @param trimStrings if true, leading and trailing spaces willl be removed from string values
+    * @param charsetName name of character set to use when reading the file, default 'UTF-8'
     */
   case class Config(dateFmtStr: String,
                     dateTimeFmtStr: String,
                     trimStrings: Boolean,
                     charsetName: String) {
+
     /** format string for parsing LocalDate */
-    val dateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFmtStr)
+    val dateFmts: Seq[DateTimeFormatter] =  dateFmtStr.split('|').map(DateTimeFormatter.ofPattern)
 
     /** format string for parsing LocalDateTime */
-    val dateTimeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern(dateTimeFmtStr)
+    val dateTimeFmts: Seq[DateTimeFormatter] = dateTimeFmtStr.split('|').map(DateTimeFormatter.ofPattern)
 
     /** Charset for reading streams */
     def charset: Charset = Charset.forName(charsetName)

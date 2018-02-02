@@ -95,21 +95,28 @@ object Converter {
     }
 
     def asLocalDateTime(s: String): Option[LocalDateTime] = {
-      try {
-        Some(LocalDateTime.parse(s, config.dateTimeFmt))
-      } catch {
-        case ex: Exception =>
-          None
-      }
+      config.dateTimeFmts.map { fmt =>
+        try {
+          Some(LocalDateTime.parse(s, fmt))
+        } catch {
+          case ex: Exception =>
+            None
+        }
+      }.find(_.isDefined)
+        .flatten
     }
 
     def asLocalDate(s: String): Option[LocalDate] = {
-      try {
-        Some(LocalDate.parse(s, config.dateFmt))
-      } catch {
-        case ex: Exception =>
-          None
-      }
+
+      config.dateFmts.map { fmt =>
+        try {
+          Some(LocalDate.parse(s, fmt))
+        } catch {
+          case ex: Exception =>
+            None
+        }
+      }.find(_.isDefined)
+        .flatten
     }
 
     def asBoolean(s: String): Option[Boolean] = {
