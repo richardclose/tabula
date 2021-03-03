@@ -1,10 +1,10 @@
 import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
-
 import org.phasanix.tabula.{Csv, Tabular}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
 
-class CsvSpec extends FlatSpec with Matchers {
+class CsvSpec extends AnyFlatSpec with Matchers {
 
   val testTwoRanges =
 """H1,H2,H3,H4
@@ -22,7 +22,7 @@ a1,b1,c1
 a2,c2,c3
 """
 
-  val config = Tabular.Config.default
+  val config: Tabular.Config = Tabular.Config.default
 
   "CSV addresses" should "parse correctly" in {
 

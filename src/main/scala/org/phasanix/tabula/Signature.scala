@@ -63,7 +63,5 @@ object Signature {
 
   def matchSheetNamesIgnoreCase(requiredHeaders: String*): Signature = new MatchSheetNames(requiredHeaders, ignoreCase = true)
 
-  val NilSignature: Signature = new Signature {
-    def matches(tabSource: Container): Boolean = false
-  }
+  val NilSignature: Signature = (tabSource: Container) => false
 }

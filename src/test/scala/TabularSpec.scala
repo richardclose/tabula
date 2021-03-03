@@ -2,14 +2,14 @@ import java.io.ByteArrayInputStream
 import java.nio.charset.Charset
 import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
-
-import org.scalatest._
 import org.phasanix.tabula._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class TabularSpec extends FlatSpec with Matchers {
+class TabularSpec extends AnyFlatSpec with Matchers {
 
-  val config = Tabular.Config.default.copy(dateFmtStr = "dd-MMM-yyyy")
-  val dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+  val config: Tabular.Config = Tabular.Config.default.copy(dateFmtStr = "dd-MMM-yyyy")
+  val dateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
   def testValidConversions(name: String): Unit = {
 

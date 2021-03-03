@@ -1,13 +1,15 @@
 import java.time.format.DateTimeFormatter
-
 import org.scalatest._
 import org.phasanix.tabula._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-class ExcelSpec extends FlatSpec with Matchers {
+class ExcelSpec extends AnyFlatSpec with Matchers {
 
-  val config = Tabular.Config.default // (dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss", trimStrings = true)
+  val config: Tabular.Config = Tabular.Config.default // (dateFmtStr = "dd-MMM-yyyy", dateTimeFmtStr = "dd-MMM-yyyy HH:mm:ss", trimStrings = true)
 
-  val dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+  val dateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
   "ExcelSource" should "load named range" in {
 

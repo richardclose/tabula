@@ -19,17 +19,19 @@ object Excel {
 
     def columnNames: Seq[String] = headers
 
-    val rows = new Iterator[Tabular.Row] {
+    private val self = this
 
-      val startCol = startCell.getColumnIndex
-      val endCol = startCol + headers.length
-      val sheet = startCell.getSheet
-      var currentRow = startCell.getRowIndex + 1
+    val rows: Iterator[Tabular.Row] = new Iterator[Tabular.Row] {
+
+      val startCol: Int = startCell.getColumnIndex
+      val endCol: Int = startCol + headers.length
+      val sheet: Sheet = startCell.getSheet
+      var currentRow: Int = startCell.getRowIndex + 1
 
       def hasNext: Boolean = !isRowBlank(sheet, currentRow, startCol, endCol)
 
       def next(): Tabular.Row = {
-        val r = new ExcelRow(ExcelTabular.this, sheet.getRow(currentRow), startCol)
+        val r = new ExcelRow(self, sheet.getRow(currentRow), startCol)
         currentRow += 1
         r
       }
@@ -158,7 +160,7 @@ object Excel {
       * @return address
       */
     override def parseAddress(addr: String): Address = {
-      if (addr.length == 0) {
+      if (addr.isEmpty) {
         NilAddress
       } else {
         val pos = addr.indexOf('!')
@@ -201,7 +203,7 @@ object Excel {
           val sheet = findSheet(sheetName)
 
           // Convert blank range to cell at origin
-          val range = if (rawRange.trim.length == 0) "A1" else rawRange
+          val range = if (rawRange.trim.isEmpty) "A1" else rawRange
 
           CellReference.classifyCellReference(range, EXCEL97) match {
 
@@ -265,7 +267,7 @@ object Excel {
 
     while (index < last) {
       val c = row.getCell(index)
-      if (c != null && c.getCellTypeEnum == CellType.STRING) {
+      if (c != null && c.getCellType == CellType.STRING) {
         arr += c.getStringCellValue
         index += 1
       } else {
@@ -278,8 +280,8 @@ object Excel {
 
   private def isCellBlank(cell: Cell): Boolean =
     cell == null ||
-      (cell.getCellTypeEnum == CellType.BLANK) ||
-      (cell.getCellTypeEnum == CellType.STRING && cell.getStringCellValue == "")
+      (cell.getCellType == CellType.BLANK) ||
+      (cell.getCellType == CellType.STRING && cell.getStringCellValue == "")
 
   private def isRowBlank(sheet: Sheet, rowIndex: Int, from: Int, to: Int): Boolean =
     rowIndex > sheet.getLastRowNum || isRowBlank(sheet.getRow(rowIndex), from, to)
@@ -296,17 +298,17 @@ object Excel {
     if (cell == null) {
       CellType.BLANK
     } else {
-      cell.getCellTypeEnum match {
-        case CellType.FORMULA => cell.getCachedFormulaResultTypeEnum
+      cell.getCellType match {
+        case CellType.FORMULA => cell.getCachedFormulaResultType
         case t @ _ => t
       }
     }
   }
 
   private def typeStr(cell: Cell): String = {
-    val ct = cell.getCellTypeEnum
+    val ct = cell.getCellType
     if (ct == CellType.FORMULA)
-      s"$ct[${cell.getCachedFormulaResultTypeEnum.toString}]"
+      s"$ct[${cell.getCachedFormulaResultType.toString}]"
     else
       ct.toString
   }
